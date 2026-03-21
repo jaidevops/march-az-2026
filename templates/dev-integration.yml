@@ -1,0 +1,37 @@
+ steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '20.x'
+    displayName: 'Install Node.js'
+
+  - bash: echo $(environment)
+    displayName: 'Print the variable value'  
+
+  - script: |
+        npm install -g @angular/cli
+    displayName: 'Install Angular CLI'
+
+  - bash: sed -i 's|envurl|https://dev.login.com|g' $(System.DefaultWorkingDirectory)/src/environment.ts
+    displayName: 'Change the value in environment'
+
+  - bash: cat $(System.DefaultWorkingDirectory)/src/environment.ts
+    displayName: 'Print the file'   
+
+  - task: Npm@1
+    inputs:
+        command: 'install'
+        workingDir: '$(System.DefaultWorkingDirectory)'
+    displayName: 'NPM Install'
+
+  - script: |
+        ng build
+    displayName: 'ng build'
+
+  - bash: ls -lart $(System.DefaultWorkingDirectory)/dist/demoapp/browser
+    displayName: 'List build output files'
+
+  - task: PublishPipelineArtifact@1
+    inputs:
+        targetPath: '$(System.DefaultWorkingDirectory)/dist/demoapp/browser'
+        artifact: 'uidist'
+        publishLocation: 'pipeline'

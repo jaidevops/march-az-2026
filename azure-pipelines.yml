@@ -1,0 +1,160 @@
+# Node.js with Angular
+# Build a Node.js project that uses Angular.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+- group: jaivg  
+
+
+stages:
+######################################################################################################
+############################# Develop Environment ####################################################
+######################################################################################################
+
+
+- stage: DevUiIntegration
+  pool:
+    vmImage: ubuntu-latest
+  variables: varibles/dev-variables.yml
+  jobs:
+    - job: UIBuild 
+      steps:
+      - template: templates/dev-integration.yml  
+
+
+- stage: DevUiDeployment
+  pool:
+    vmImage: ubuntu-latest
+  dependsOn: DevUiIntegration
+  jobs:
+  - deployment: app
+    environment: dev
+    strategy: 
+      runOnce:
+        deploy:
+          steps:
+          - template: templates/dev-deployment.yml  
+
+   
+
+######################################################################################################
+############################# Quality/Test Environment ###############################################
+######################################################################################################
+
+- stage: QaUiIntegration
+  pool:
+   vmImage: ubuntu-latest
+  dependsOn: DevUiDeployment 
+  jobs:
+  - job: UIBuild 
+    steps:
+    - template: templates/qa-integration.yml
+
+
+- stage: QaUiDeployment
+  pool:
+    vmImage: ubuntu-latest
+  dependsOn: QaUiIntegration
+  jobs:
+  - deployment: app
+    environment: qa
+    strategy: 
+      runOnce:
+        deploy:
+          steps:
+          - template: templates/qa-deployment.yml  
+
+
+
+######################################################################################################
+############################# UAT Environment ########################################################
+######################################################################################################
+
+- stage: UatUiIntegration
+  pool:
+   vmImage: ubuntu-latest
+  dependsOn: QaUiDeployment  
+  jobs:
+  - job: UIBuild 
+    steps:
+    - template: templates/uat-integration.yml
+
+
+- stage: UatUiDeployment
+  pool:
+    vmImage: ubuntu-latest
+  dependsOn: UatUiIntegration
+  jobs:
+  - deployment: app
+    environment: uat
+    strategy: 
+      runOnce:
+        deploy:
+          steps:
+          - template: templates/uat-deployment.yml  
+
+
+
+
+######################################################################################################
+############################# Stage/preprod Environment #############################################
+######################################################################################################
+
+
+- stage: StgUiIntegration
+  pool:
+   vmImage: ubuntu-latest
+  dependsOn: UatUiDeployment 
+  jobs:
+  - job: UIBuild 
+    steps:
+    - template: templates/stage-integration.yml
+
+
+- stage: StgUiDeployment
+  pool:
+    vmImage: ubuntu-latest
+  dependsOn: StgUiIntegration
+  jobs:
+  - deployment: app
+    environment: stage
+    strategy: 
+      runOnce:
+        deploy:
+          steps:
+          - template: templates/stage-deployment.yml  
+
+
+######################################################################################################
+############################# Prod Environment #######################################################
+######################################################################################################
+
+
+- stage: PrdUiIntegration
+  pool:
+   vmImage: ubuntu-latest
+  dependsOn: StgUiDeployment
+  jobs:
+  - job: UIBuild 
+    steps:
+    - template: templates/prod-integration.yml
+
+- stage: PrdUiDeployment
+  pool:
+    vmImage: ubuntu-latest
+  dependsOn: PrdUiIntegration
+  jobs:
+  - deployment: app
+    environment: prod
+    strategy: 
+      runOnce:
+        deploy:
+          steps:
+          - template: templates/prod-deployment.yml  
